@@ -8,6 +8,7 @@ import Layout from './components/Layout';
 // Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Classes from './pages/Classes';
 import Attendance from './pages/Attendance';
@@ -20,13 +21,14 @@ import PrivateRoute from './components/PrivateRoute';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
         <ToastContainer position="top-right" autoClose={3000} />
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="login" element={<Login />} />
+            <Route path="register" element={<Register />} />
             <Route path="dashboard" element={
               <PrivateRoute>
                 <Dashboard />
@@ -50,8 +52,8 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

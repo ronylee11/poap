@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext(null);
 
@@ -16,6 +17,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     checkAuth();
@@ -32,8 +34,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const checkRegistration = async (address) => {
+    try {
+      const response = await axios.get(`/api/auth/check-registration/${address}`);
+      return response.data.isRegistered;
+    } catch (error) {
+      console.error('Check registration failed:', error);
+      return false;
+    }
+  };
+
   const login = async (address, signature) => {
     try {
+      // Check if user is registered
+      const isRegistered = await checkRegistration(address);
+      if (!isRegistered) {
+        toast.error('Please register first');
+        navigate('/register');
+        return false;
+      }
+
       const message = 'Sign this message to authenticate with POAP Attendance System';
       const response = await axios.post('/api/auth/login', {
         address,
@@ -41,9 +61,9 @@ export const AuthProvider = ({ children }) => {
         message
       }, { withCredentials: true });
       
-      setUser(response.data.user);
       await checkAuth(); // Fetch user data after successful login
       toast.success('Login successful!');
+      navigate('/dashboard');
       return true;
     } catch (error) {
       console.error('Login failed:', error);
@@ -57,6 +77,7 @@ export const AuthProvider = ({ children }) => {
       await axios.post('/api/auth/logout', {}, { withCredentials: true });
       setUser(null);
       toast.success('Logged out successfully');
+      navigate('/');
     } catch (error) {
       console.error('Logout failed:', error);
       toast.error('Logout failed');
@@ -76,7 +97,7 @@ export const AuthProvider = ({ children }) => {
       const message = 'Sign this message to authenticate with POAP Attendance System';
       const signature = await signer.signMessage(message);
 
-      return { address, signature };
+      return { address, signature, message };
     } catch (error) {
       console.error('Signing failed:', error);
       toast.error(error.message || 'Failed to sign message');
@@ -89,7 +110,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
-    signMessage
+    signMessage,
+    checkRegistration
   };
 
   return (

@@ -28,7 +28,7 @@ app.get('/api/test', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/attendance', attendanceRoutes);
-app.use('/student', studentRoutes);
+app.use('/api/student', studentRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

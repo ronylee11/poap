@@ -16,7 +16,7 @@ function Profile() {
 
   const fetchBadges = async () => {
     try {
-      const response = await axios.get(`/api/students/${user.address}/badges`);
+      const response = await axios.get(`/api/student/badges`);
       setBadges(response.data);
     } catch (error) {
       console.error('Failed to fetch badges:', error);

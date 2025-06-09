@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { ethers } = require('ethers');
+const jwt = require('jsonwebtoken');
 
 // Import models
 const Student = require('../models/Student');
@@ -17,8 +18,25 @@ const contractAddress = process.env.CONTRACT_ADDRESS;
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 const contract = new ethers.Contract(contractAddress, contractABI, provider);
 
+// Middleware to verify JWT token
+const verifyToken = (req, res, next) => {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ message: 'No token provided' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (err) {
+        return res.status(401).json({ message: 'Invalid token' });
+    }
+};
+
 // Get student profile
-router.get('/profile', async (req, res) => {
+// /api/student/profile
+router.get('/profile', verifyToken, async (req, res) => {
     try {
         const { address } = req.user;
 
@@ -52,7 +70,7 @@ router.get('/profile', async (req, res) => {
 });
 
 // Update student profile
-router.put('/profile', [
+router.put('/profile', verifyToken, [
     body('name').optional().isString(),
     body('studentId').optional().isString(),
     body('graduationDate').optional().isISO8601()
@@ -86,7 +104,7 @@ router.put('/profile', [
 });
 
 // Get attendance statistics
-router.get('/attendance/stats', async (req, res) => {
+router.get('/attendance/stats', verifyToken, async (req, res) => {
     try {
         const { address } = req.user;
 
@@ -121,7 +139,7 @@ router.get('/attendance/stats', async (req, res) => {
 });
 
 // Get NFT badges
-router.get('/badges', async (req, res) => {
+router.get('/badges', verifyToken, async (req, res) => {
     try {
         const { address } = req.user;
 
