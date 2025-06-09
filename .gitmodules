@@ -1,0 +1,3 @@
+[submodule "poap-contract"]
+	path = poap-attendance-hardhat
+	url = https://github.com/Jacelyn0001/poap-attendance-hardhat.git
