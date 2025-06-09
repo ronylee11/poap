@@ -10,20 +10,24 @@ A decentralized attendance tracking system using POAP NFTs for educational insti
 
 ### Key Routes
 - `/api/auth`
+  - `POST /register` - Register new student with wallet
   - `POST /login` - Authenticate with Ethereum wallet
   - `POST /logout` - Clear authentication
   - `GET /me` - Get current user info
+  - `GET /check-registration/:address` - Check if wallet is registered
+- `/api/student`
+  - `GET /profile` - Get student profile
+  - `PUT /profile` - Update student profile
+  - `GET /attendance` - Get attendance history
+  - `GET /badges` - Get earned badges
 - `/api/classes`
   - `GET /` - List all classes
   - `POST /` - Create new class
   - `GET /:classId` - Get class details
-  - `POST /:classId/enroll` - Enroll student in class
+  - `POST /:classId/attend` - Mark attendance
 - `/api/attendance`
-  - `POST /mark` - Mark attendance
   - `POST /validate` - Validate attendance and mint NFT
   - `GET /:classId` - Get attendance records
-- `/api/student`
-  - `GET /:address/badges` - Get student's attendance badges
 
 ### Database
 - MongoDB for storing:
@@ -38,13 +42,16 @@ A decentralized attendance tracking system using POAP NFTs for educational insti
 - React.js with Vite
 - Tailwind CSS for styling
 - React Router for navigation
+- React Toastify for notifications
 
 ### Features
 - MetaMask Integration
   - Wallet connection
   - Message signing for authentication
+  - Registration and login flow
 - Pages
   - Home - Landing page
+  - Register - New student registration
   - Login - Wallet authentication
   - Dashboard - Overview of classes and attendance
   - Classes - Manage and view classes
@@ -157,6 +164,29 @@ npx hardhat run scripts/deploy.js --network <network-name>
 - `npx hardhat test` - Run tests
 - `npx hardhat node` - Start local blockchain
 - `npx hardhat run scripts/deploy.js` - Deploy contracts
+
+## User Flow
+
+1. **Registration**
+   - Connect MetaMask wallet
+   - Fill in student details (name, ID)
+   - Sign message to verify wallet ownership
+   - Complete registration
+
+2. **Login**
+   - Connect MetaMask wallet
+   - Sign message to authenticate
+   - Access dashboard
+
+3. **Attendance**
+   - View available classes
+   - Mark attendance for class
+   - Receive NFT badge upon validation
+
+4. **Profile**
+   - View attendance history
+   - Manage earned badges
+   - Update profile information
 
 ## Post-Deployment
 
