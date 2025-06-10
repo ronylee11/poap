@@ -1,6 +1,44 @@
 # POAP Attendance System
 
-A decentralized attendance tracking system using POAP NFTs for educational institutions.
+A decentralized attendance tracking system using POAP NFTs for educational institutions. This system leverages blockchain technology to create immutable attendance records and reward students with unique NFT badges for their participation.
+
+## Project Overview
+
+The POAP Attendance System is a full-stack application that combines blockchain technology with traditional attendance tracking. It consists of three main components:
+
+1. **Frontend**: A React-based web application that provides user interfaces for students, lecturers, and administrators
+2. **Backend**: A Node.js/Express API that handles business logic and database operations
+3. **Smart Contracts**: Ethereum-based smart contracts for minting and managing attendance NFTs
+
+## Directory Structure
+
+```
+poap/
+├── poap-frontend/        # React frontend application
+├── poap-backend/         # Express.js backend API
+└── poap-attendance-hardhat/  # Smart contract development
+```
+
+## Architecture
+
+### System Components
+
+1. **Frontend Layer**
+   - React.js with Vite for fast development
+   - Tailwind CSS for responsive design
+   - MetaMask integration for wallet connectivity
+   - Role-based access control
+
+2. **Backend Layer**
+   - Express.js REST API
+   - MongoDB for data persistence
+   - JWT-based authentication
+   - Role-based authorization
+
+3. **Blockchain Layer**
+   - ERC-721 compliant NFT contract
+   - POAP-style attendance badges
+   - Secure minting process
 
 ## Backend
 
@@ -99,14 +137,38 @@ A decentralized attendance tracking system using POAP NFTs for educational insti
 
 ### Backend (.env)
 ```
+# Server Configuration
 PORT=3001
+NODE_ENV=development
+
+# Database
 MONGODB_URI=mongodb://localhost:27017/poap-attendance
+
+# Authentication
 JWT_SECRET=your-jwt-secret
+JWT_EXPIRES_IN=24h
+
+# Frontend
 FRONTEND_URL=http://localhost:3000
+
+# Blockchain
 CONTRACT_ADDRESS=your-contract-address
 PRIVATE_KEY=your-private-key
 RPC_URL=your-rpc-url
 ADMIN_ADDRESS=your-admin-wallet-address
+
+# Optional: Email Service (if implemented)
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your-email@example.com
+SMTP_PASS=your-email-password
+```
+
+### Frontend (.env)
+```
+VITE_API_URL=http://localhost:3001
+VITE_CONTRACT_ADDRESS=your-contract-address
+VITE_NETWORK_ID=1  # Mainnet: 1, Goerli: 5, etc.
 ```
 
 ## Setup and Installation
@@ -256,6 +318,45 @@ cd poap-attendance-hardhat
 npx hardhat test
 ```
 
+## Contributing
+
+We welcome contributions to the POAP Attendance System! Here's how you can help:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow the existing code style and formatting
+- Write tests for new features
+- Update documentation as needed
+- Ensure all tests pass before submitting PRs
+
+## Security Considerations
+
+1. **Wallet Security**
+   - Never share private keys
+   - Use hardware wallets for admin operations
+   - Implement proper key management
+
+2. **API Security**
+   - All API endpoints are protected with JWT
+   - Rate limiting is implemented
+   - Input validation on all endpoints
+
+3. **Smart Contract Security**
+   - Contracts are audited
+   - Access control implemented
+   - Emergency pause functionality
+
+4. **Data Privacy**
+   - Minimal personal data collection
+   - Data encryption at rest
+   - Secure data transmission
+
 ## License
 
-MIT 
+This project is licensed under the MIT License - see the LICENSE file for details. 
