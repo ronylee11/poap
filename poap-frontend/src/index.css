@@ -33,3 +33,10 @@
     @apply bg-white rounded-lg shadow-md p-6;
   }
 }
+
+@media (min-width: 1024px) { /* lg in tailwind */
+  .container {
+    padding-left: 300px;
+    min-height: 600px;
+  }
+}
