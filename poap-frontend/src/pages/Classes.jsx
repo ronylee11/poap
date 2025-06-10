@@ -16,7 +16,12 @@ export default function Classes() {
 
   const fetchClasses = async () => {
     try {
-      const response = await axios.get('/api/classes', { withCredentials: true });
+      const API_URL = 'http://localhost:3001';
+      const endpoint = user.role === 'lecturer' 
+        ? `${API_URL}/api/lecturer/classes`
+        : `${API_URL}/api/classes`;
+      
+      const response = await axios.get(endpoint, { withCredentials: true });
       setClasses(response.data);
     } catch (error) {
       console.error('Error fetching classes:', error);
