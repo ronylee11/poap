@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-function Profile() {
+export default function Me() {
   const { user } = useAuth();
   const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +78,4 @@ function Profile() {
       </div>
     </div>
   );
-}
-
-export default Profile; 
+} 

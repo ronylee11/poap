@@ -1,57 +1,89 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-
-// Layout
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
-
-// Pages
-import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/AdminDashboard';
+import LecturerDashboard from './pages/LecturerDashboard';
+import Home from './pages/Home';
 import Classes from './pages/Classes';
-import Attendance from './pages/Attendance';
-import Profile from './pages/Profile';
-import NotFound from './pages/NotFound';
+import Me from './pages/Profile';
 
-// Auth Context
-import { AuthProvider } from './contexts/AuthContext';
-import PrivateRoute from './components/PrivateRoute';
+// Protected Route component
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/" />;
+  }
+
+  return children;
+};
+
+// Role-specific dashboard component
+const RoleDashboard = () => {
+  const { user } = useAuth();
+  console.log("THE USER ROLE IS !!! :: ", user.role);
+
+  switch (user.role) {
+    case 'admin':
+      return <AdminDashboard />;
+    case 'lecturer':
+      return <LecturerDashboard />;
+    case 'student':
+      return <Dashboard />;
+    default:
+      return <Navigate to="/login" />;
+  }
+};
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <ToastContainer position="top-right" autoClose={3000} />
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Home />} />
-            <Route path="login" element={<Login />} />
-            <Route path="register" element={<Register />} />
-            <Route path="dashboard" element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            } />
-            <Route path="classes" element={
-              <PrivateRoute>
-                <Classes />
-              </PrivateRoute>
-            } />
-            <Route path="attendance" element={
-              <PrivateRoute>
-                <Attendance />
-              </PrivateRoute>
-            } />
-            <Route path="profile" element={
-              <PrivateRoute>
-                <Profile />
-              </PrivateRoute>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Route>
-        </Routes>
+        <div className="min-h-screen bg-gray-100">
+          <Toaster position="top-right" />
+          <Layout />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <RoleDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/classes"
+              element={
+                <ProtectedRoute>
+                  <Classes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/me"
+              element={
+                <ProtectedRoute>
+                  <Me />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </div>
       </AuthProvider>
     </Router>
   );

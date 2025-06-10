@@ -12,9 +12,11 @@ export default function Login() {
       setLoading(true);
       const { address, signature } = await signMessage();
       if (address && signature) {
-        const success = await login(address, signature);
-        if (success) {
-          navigate('/dashboard');
+        const result = await login(address, signature);
+        if (result.success) {
+          navigate(result.redirect);
+        } else {
+          navigate(result.redirect);
         }
       }
     } catch (error) {

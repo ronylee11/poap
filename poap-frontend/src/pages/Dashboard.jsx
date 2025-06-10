@@ -37,7 +37,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-8">
       <div>
         <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
           Welcome back, {user?.name || 'User'}

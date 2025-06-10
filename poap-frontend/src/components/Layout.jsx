@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Dialog, Transition } from '@headlessui/react';
 import {
   Bars3Icon,
@@ -15,7 +15,7 @@ const navigation = [
   { name: 'Home', href: '/', icon: HomeIcon },
   { name: 'Dashboard', href: '/dashboard', icon: AcademicCapIcon },
   { name: 'Classes', href: '/classes', icon: ClipboardDocumentCheckIcon },
-  { name: 'Profile', href: '/profile', icon: UserCircleIcon },
+  { name: 'Me', href: '/me', icon: UserCircleIcon },
 ];
 
 function classNames(...classes) {
@@ -26,6 +26,14 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const redirectPath = await logout();
+    if (redirectPath) {
+      navigate(redirectPath);
+    }
+  };
 
   return (
     <div>
@@ -162,7 +170,7 @@ export default function Layout() {
             <div className="flex items-center gap-x-4 lg:gap-x-6">
               {user ? (
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="text-sm font-semibold leading-6 text-gray-900"
                 >
                   Logout
