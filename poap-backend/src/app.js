@@ -5,9 +5,11 @@ const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
-const studentRoutes = require('./routes/student');
 const adminRoutes = require('./routes/admin');
 const lecturerRoutes = require('./routes/lecturer');
+const studentRoutes = require('./routes/student');
+const classRoutes = require('./routes/class');
+const attendanceRoutes = require('./routes/attendance');
 
 const app = express();
 
@@ -21,9 +23,11 @@ app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/student', studentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/lecturer', lecturerRoutes);
+app.use('/api/student', studentRoutes);
+app.use('/api/classes', classRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -36,7 +40,7 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

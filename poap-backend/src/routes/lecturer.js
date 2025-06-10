@@ -10,86 +10,137 @@ const { verifyToken } = require('../middleware/authMiddleware');
 router.use(verifyToken);
 router.use(isLecturer);
 
-// Create new class
-router.post('/classes',
-  [
-    body('name').notEmpty().withMessage('Class name is required'),
-    body('description').optional().isString(),
-    body('schedule').optional().isString()
-  ],
-  async (req, res) => {
+// Get all classes for the lecturer
+router.get('/classes', async (req, res) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-      }
-
-      const { name, description, schedule } = req.body;
-      const lecturerAddress = req.user.address;
-
-      const newClass = new Class({
-        name,
-        description,
-        schedule,
-        lecturer: lecturerAddress
-      });
-
-      await newClass.save();
-      res.status(201).json({ message: 'Class created successfully', class: newClass });
+        console.log('Fetching classes for lecturer:', req.user.address);
+        const classes = await Class.find({ lecturer: req.user.address });
+        console.log('Found classes:', classes);
+        res.json(classes);
     } catch (error) {
-      res.status(500).json({ message: 'Error creating class' });
+        console.error('Error fetching classes:', error);
+        res.status(500).json({ message: 'Failed to fetch classes' });
     }
-  }
-);
+});
 
-// Update class details
-router.put('/classes/:classId',
-  [
-    body('name').optional().notEmpty().withMessage('Class name cannot be empty'),
-    body('description').optional().isString(),
-    body('schedule').optional().isString()
-  ],
-  async (req, res) => {
+// Create a new class
+router.post('/classes', [
+    body('classId').isString().notEmpty(),
+    body('name').isString().notEmpty(),
+    body('description').isString(),
+    body('schedule').isString(),
+    body('startDate').isISO8601(),
+    body('endDate').isISO8601()
+], async (req, res) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-      }
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
 
-      const { classId } = req.params;
-      const { name, description, schedule } = req.body;
+        const { classId, name, description, schedule, startDate, endDate } = req.body;
 
-      const classDoc = await Class.findOne({ _id: classId, lecturer: req.user.address });
-      if (!classDoc) {
-        return res.status(404).json({ message: 'Class not found' });
-      }
+        // Check if classId already exists
+        const existingClass = await Class.findOne({ classId });
+        if (existingClass) {
+            return res.status(400).json({ message: 'Class ID already exists' });
+        }
 
-      if (name) classDoc.name = name;
-      if (description) classDoc.description = description;
-      if (schedule) classDoc.schedule = schedule;
+        const newClass = new Class({
+            classId,
+            name,
+            description,
+            schedule,
+            startDate,
+            endDate,
+            lecturer: req.user.address
+        });
 
-      await classDoc.save();
-      res.json({ message: 'Class updated successfully', class: classDoc });
+        await newClass.save();
+        res.status(201).json(newClass);
     } catch (error) {
-      res.status(500).json({ message: 'Error updating class' });
+        console.error('Error creating class:', error);
+        res.status(500).json({ message: 'Failed to create class' });
     }
-  }
-);
+});
 
-// Delete class
+// Update a class
+router.put('/classes/:classId', [
+    body('name').optional().isString(),
+    body('description').optional().isString(),
+    body('schedule').optional().isString(),
+    body('startDate').optional().isISO8601(),
+    body('endDate').optional().isISO8601()
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { classId } = req.params;
+        const updates = req.body;
+
+        const classToUpdate = await Class.findOne({ 
+            classId,
+            lecturer: req.user.address 
+        });
+
+        if (!classToUpdate) {
+            return res.status(404).json({ message: 'Class not found' });
+        }
+
+        Object.assign(classToUpdate, updates);
+        await classToUpdate.save();
+
+        res.json(classToUpdate);
+    } catch (error) {
+        console.error('Error updating class:', error);
+        res.status(500).json({ message: 'Failed to update class' });
+    }
+});
+
+// Delete a class
 router.delete('/classes/:classId', async (req, res) => {
-  try {
-    const { classId } = req.params;
-    const classDoc = await Class.findOneAndDelete({ _id: classId, lecturer: req.user.address });
-    
-    if (!classDoc) {
-      return res.status(404).json({ message: 'Class not found' });
-    }
+    try {
+        const { classId } = req.params;
 
-    res.json({ message: 'Class deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error deleting class' });
-  }
+        const classToDelete = await Class.findOne({ 
+            classId,
+            lecturer: req.user.address 
+        });
+
+        if (!classToDelete) {
+            return res.status(404).json({ message: 'Class not found' });
+        }
+
+        await classToDelete.deleteOne();
+        res.json({ message: 'Class deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting class:', error);
+        res.status(500).json({ message: 'Failed to delete class' });
+    }
+});
+
+// Get class details
+router.get('/classes/:classId', async (req, res) => {
+    try {
+        const { classId } = req.params;
+
+        const classDetails = await Class.findOne({ 
+            classId,
+            lecturer: req.user.address 
+        }).populate('students', 'address name');
+
+        if (!classDetails) {
+            return res.status(404).json({ message: 'Class not found' });
+        }
+
+        res.json(classDetails);
+    } catch (error) {
+        console.error('Error fetching class details:', error);
+        res.status(500).json({ message: 'Failed to fetch class details' });
+    }
 });
 
 // Enroll student in class
