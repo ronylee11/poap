@@ -33,7 +33,6 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 // Role-specific dashboard component
 const RoleDashboard = () => {
   const { user } = useAuth();
-  console.log("THE USER ROLE IS !!! :: ", user.role);
 
   switch (user.role) {
     case 'admin':
