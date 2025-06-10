@@ -270,16 +270,17 @@ router.post('/classes/:classId/attendance/validate',
       }
 
       // TODO: Implement NFT minting logic here
+      //
       // For now, just record the attendance
-      const attendance = {
-        student: studentAddress,
-        date: new Date(date),
-        validated: true,
-        validatedBy: req.user.address
-      };
+      //const attendance = {
+        //student: studentAddress,
+        //date: new Date(date),
+        //validated: true,
+        //validatedBy: req.user.address
+      //};
 
-      classDoc.attendance.push(attendance);
-      await classDoc.save();
+      //classDoc.attendance.push(attendance);
+      //await classDoc.save();
 
       res.json({ message: 'Attendance validated successfully', attendance });
     } catch (error) {

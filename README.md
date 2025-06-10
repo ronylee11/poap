@@ -102,17 +102,11 @@ A decentralized attendance tracking system using POAP NFTs for educational insti
 PORT=3001
 MONGODB_URI=mongodb://localhost:27017/poap-attendance
 JWT_SECRET=your-jwt-secret
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:3000
 CONTRACT_ADDRESS=your-contract-address
 PRIVATE_KEY=your-private-key
 RPC_URL=your-rpc-url
 ADMIN_ADDRESS=your-admin-wallet-address
-```
-
-### Frontend (.env)
-```
-VITE_API_URL=http://localhost:3001
-VITE_CONTRACT_ADDRESS=your-contract-address
 ```
 
 ## Setup and Installation

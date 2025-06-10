@@ -10,8 +10,22 @@ const adminData = {
     address: '0xdcdA8dd5759fA2bae1D22CEC6fAC2fA0D981ca80', // real acc 3
     name: 'Admin User',
     role: 'admin',
-    permissions: ['manage_users', 'manage_lecturers', 'manage_classes', 'view_reports'],
-    isSuperAdmin: true
+    permissions: [
+        'manage_users',
+        'manage_lecturers',
+        'manage_classes',
+        'view_reports',
+        'manage_contract',
+        'add_lecturers',
+        'remove_lecturers'
+    ],
+    isSuperAdmin: true,
+    isContractOwner: true,
+    department: 'Administration',
+    contactEmail: 'admin@university.edu',
+    lastLogin: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date()
 };
 
 const lecturerData = [

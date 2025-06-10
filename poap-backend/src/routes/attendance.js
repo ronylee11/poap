@@ -1,61 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
-const { ethers } = require('ethers');
 
 // Import models
 const Attendance = require('../models/Attendance');
 const Class = require('../models/Class');
-const Student = require('../models/Student');
-
-// Import contract ABI and address
-const contractArtifact = require('../contracts/POAPAttendance.json');
-const contractABI = contractArtifact.abi;
-const contractAddress = process.env.CONTRACT_ADDRESS;
-
-// Initialize contract
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-const contract = new ethers.Contract(contractAddress, contractABI, provider);
-
-// Mark attendance
-router.post('/mark', [
-    body('classId').isString()
-], async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-
-        const { classId } = req.body;
-        const { address } = req.user;
-
-        // Check if student is enrolled in the class
-        const classDetails = await Class.findOne({ 
-            classId,
-            students: address
-        });
-
-        if (!classDetails) {
-            return res.status(403).json({ message: 'Not enrolled in this class' });
-        }
-
-        // Mark attendance in database
-        const attendance = new Attendance({
-            classId,
-            student: address,
-            markedAt: new Date(),
-            validated: false
-        });
-
-        await attendance.save();
-
-        res.json({ message: 'Attendance marked successfully' });
-    } catch (error) {
-        console.error('Error marking attendance:', error);
-        res.status(500).json({ message: 'Failed to mark attendance' });
-    }
-});
 
 // Validate attendance
 router.post('/validate', [
@@ -81,48 +30,52 @@ router.post('/validate', [
             return res.status(403).json({ message: 'Not authorized to validate attendance' });
         }
 
-        // Check if student has marked attendance
-        const attendance = await Attendance.findOne({
-            classId,
-            student: studentAddress,
-            validated: false
-        });
-
-        if (!attendance) {
-            return res.status(404).json({ message: 'No pending attendance to validate' });
+        // Check if student is enrolled in the class
+        if (!classDetails.students.includes(studentAddress)) {
+            return res.status(403).json({ message: 'Student is not enrolled in this class' });
         }
 
-        // Validate attendance in database
-        attendance.validated = true;
-        attendance.validatedAt = new Date();
+        // Get today's date at midnight for comparison
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Check if attendance was already validated today
+        const existingAttendance = await Attendance.findOne({
+            classId,
+            student: studentAddress,
+            validated: true,
+            validatedAt: {
+                $gte: today
+            }
+        });
+
+        if (existingAttendance) {
+            return res.status(400).json({ 
+                message: 'Attendance already validated for this student today',
+                validatedAt: existingAttendance.validatedAt
+            });
+        }
+
+        // Create attendance record
+        const attendance = new Attendance({
+            classId,
+            student: studentAddress,
+            validated: true,
+            validatedAt: new Date()
+        });
+
         await attendance.save();
 
-        // Mint NFT
-        const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-        const contractWithSigner = contract.connect(signer);
-
-        const tokenURI = `ipfs://${classId}/${studentAddress}`; // You might want to generate a proper IPFS URI
-        const eventTitle = classDetails.title;
-        const role = 'Student';
-        const expiryTime = 0; // No expiry
-
-        const tx = await contractWithSigner.mintBadge(
-            studentAddress,
-            tokenURI,
-            eventTitle,
-            role,
-            expiryTime
-        );
-
-        await tx.wait();
-
         res.json({ 
-            message: 'Attendance validated and NFT minted successfully',
-            transactionHash: tx.hash
+            message: 'Attendance validated successfully',
+            validatedAt: attendance.validatedAt
         });
     } catch (error) {
         console.error('Error validating attendance:', error);
-        res.status(500).json({ message: 'Failed to validate attendance' });
+        res.status(500).json({ 
+            message: 'Failed to validate attendance',
+            error: error.message
+        });
     }
 });
 
@@ -147,7 +100,7 @@ router.get('/class/:classId', async (req, res) => {
 
         const attendance = await Attendance.find({ classId })
             .populate('student', 'address name')
-            .sort({ markedAt: -1 });
+            .sort({ validatedAt: -1 });
 
         res.json(attendance);
     } catch (error) {

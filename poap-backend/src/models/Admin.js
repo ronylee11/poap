@@ -4,7 +4,15 @@ const User = require('./User');
 const adminSchema = new mongoose.Schema({
     permissions: [{
         type: String,
-        enum: ['manage_users', 'manage_lecturers', 'manage_classes', 'view_reports']
+        enum: [
+            'manage_users',
+            'manage_lecturers',
+            'manage_classes',
+            'view_reports',
+            'manage_contract',
+            'add_lecturers',
+            'remove_lecturers'
+        ]
     }],
     lastLogin: {
         type: Date
@@ -12,6 +20,16 @@ const adminSchema = new mongoose.Schema({
     isSuperAdmin: {
         type: Boolean,
         default: false
+    },
+    isContractOwner: {
+        type: Boolean,
+        default: false
+    },
+    department: {
+        type: String
+    },
+    contactEmail: {
+        type: String
     }
 });
 

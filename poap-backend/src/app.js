@@ -21,6 +21,11 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// Add a test route to verify the server is working
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API is working' });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -36,7 +41,7 @@ app.use((err, req, res, next) => {
 });
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/poap-attendance')
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 

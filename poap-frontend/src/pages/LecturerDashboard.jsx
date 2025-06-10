@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import { ethers } from 'ethers';
+import POAPAttendanceABI from '../contracts/POAPAttendance.json';
 
 const LecturerDashboard = () => {
   const { user } = useAuth();
@@ -16,10 +18,77 @@ const LecturerDashboard = () => {
   const [newStudent, setNewStudent] = useState({
     address: ''
   });
+  const [contract, setContract] = useState(null);
+  const [mintingStatus, setMintingStatus] = useState({});
+  const [isAddingLecturer, setIsAddingLecturer] = useState(false);
 
   useEffect(() => {
     fetchClasses();
+    initializeContract();
   }, []);
+
+  const initializeContract = async () => {
+    try {
+      if (!window.ethereum) {
+        throw new Error('Please install MetaMask to use this feature');
+      }
+
+      // Request account access
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      console.log('Connected account:', accounts[0]);
+      
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
+      
+      console.log('Initializing contract with address:', contractAddress);
+      console.log('Contract ABI:', POAPAttendanceABI);
+      
+      if (!contractAddress) {
+        throw new Error('Contract address not found in environment variables');
+      }
+
+      // Verify contract address format
+      if (!ethers.isAddress(contractAddress)) {
+        throw new Error('Invalid contract address format');
+      }
+
+      // Create contract instance
+      const contractInstance = new ethers.Contract(contractAddress, POAPAttendanceABI, signer);
+      
+      // Verify contract connection
+      try {
+        const code = await provider.getCode(contractAddress);
+        if (code === '0x') {
+          throw new Error('No contract found at the specified address');
+        }
+        console.log('Contract code found at address');
+
+        // Verify contract methods
+        if (!contractInstance.mintBadge) {
+          throw new Error('mintBadge method not found in contract ABI');
+        }
+
+        // Get network info
+        const network = await provider.getNetwork();
+        console.log('Connected to network:', network);
+
+        // Get signer balance
+        const balance = await provider.getBalance(accounts[0]);
+        console.log('Signer balance:', ethers.formatEther(balance), 'ETH');
+
+      } catch (error) {
+        console.error('Error verifying contract:', error);
+        throw new Error(`Failed to verify contract: ${error.message}`);
+      }
+
+      setContract(contractInstance);
+      console.log('Contract initialized successfully');
+    } catch (error) {
+      console.error('Error initializing contract:', error);
+      toast.error('Failed to initialize smart contract: ' + error.message);
+    }
+  };
 
   const fetchClasses = async () => {
     try {
@@ -100,16 +169,225 @@ const LecturerDashboard = () => {
     }
   };
 
-  const handleValidateAttendance = async (classId, studentAddress, date) => {
+  const handleValidateAttendance = async (classId, studentAddress) => {
     try {
-      await axios.post(`/api/lecturer/classes/${classId}/attendance/validate`, {
+      if (!contract) {
+        toast.error('Smart contract not initialized');
+        return;
+      }
+
+      // Validate student address
+      if (!ethers.isAddress(studentAddress)) {
+        throw new Error('Invalid student address');
+      }
+
+      setMintingStatus(prev => ({ ...prev, [studentAddress]: 'minting' }));
+
+      // Get class details
+      const classDetails = classes.find(c => c._id === classId);
+      if (!classDetails) {
+        throw new Error('Class not found');
+      }
+
+      // Generate unique tokenURI
+      const timestamp = new Date().toISOString();
+      const tokenURI = `ipfs://${classDetails.name}-${timestamp}`;
+      const eventTitle = classDetails.name;
+      const role = "Student";
+      const expiryTime = 0; // No expiry
+
+      // Log all parameters for debugging
+      console.log('Contract address:', import.meta.env.VITE_CONTRACT_ADDRESS);
+      console.log('Minting parameters:', {
         studentAddress,
-        date
-      }, { withCredentials: true });
-      toast.success('Attendance validated successfully');
-      fetchClasses();
+        tokenURI,
+        eventTitle,
+        role,
+        expiryTime
+      });
+
+      try {
+        // Get the current signer
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const signerAddress = await signer.getAddress();
+        console.log('Signer address:', signerAddress);
+
+        // Create a new contract instance with the current signer
+        const contractWithSigner = new ethers.Contract(
+          import.meta.env.VITE_CONTRACT_ADDRESS,
+          POAPAttendanceABI,
+          signer
+        );
+
+        // Verify contract methods and parameters
+        if (!contractWithSigner.mintBadge) {
+          throw new Error('mintBadge method not found in contract');
+        }
+
+        // Verify contract code exists
+        const code = await provider.getCode(import.meta.env.VITE_CONTRACT_ADDRESS);
+        if (code === '0x') {
+          throw new Error('No contract found at the specified address');
+        }
+
+        // Verify contract owner
+        try {
+          const owner = await contractWithSigner.owner();
+          console.log('Contract owner:', owner);
+          if (owner.toLowerCase() !== signerAddress.toLowerCase()) {
+            console.warn('Warning: Signer is not the contract owner');
+          }
+        } catch (error) {
+          console.warn('Could not verify contract owner:', error);
+        }
+
+        // First try to estimate gas with detailed error handling
+        console.log('Estimating gas...');
+        let gasEstimate;
+        try {
+          // Log the exact function call parameters
+          console.log('Function call parameters:', {
+            to: import.meta.env.VITE_CONTRACT_ADDRESS,
+            from: signerAddress,
+            studentAddress,
+            tokenURI,
+            eventTitle,
+            role,
+            expiryTime
+          });
+
+          gasEstimate = await contractWithSigner.mintBadge.estimateGas(
+            studentAddress,
+            tokenURI,
+            eventTitle,
+            role,
+            expiryTime,
+            {
+              from: signerAddress
+            }
+          );
+          console.log('Gas estimate:', gasEstimate.toString());
+        } catch (estimateError) {
+          console.error('Gas estimation error details:', {
+            error: estimateError,
+            message: estimateError.message,
+            code: estimateError.code,
+            data: estimateError.data,
+            transaction: estimateError.transaction,
+            reason: estimateError.reason
+          });
+
+          // Try to decode the error if possible
+          if (estimateError.data) {
+            try {
+              const decodedError = contractWithSigner.interface.parseError(estimateError.data);
+              console.error('Decoded error:', decodedError);
+            } catch (decodeError) {
+              console.error('Could not decode error:', decodeError);
+            }
+          }
+
+          throw new Error(`Gas estimation failed: ${estimateError.message}`);
+        }
+
+        // Add 20% buffer to gas estimate
+        const gasLimit = Math.floor(gasEstimate * 1.2);
+        console.log('Gas limit with buffer:', gasLimit);
+
+        // Now execute the transaction with the gas limit
+        console.log('Sending transaction...');
+        const tx = await contractWithSigner.mintBadge(
+          studentAddress,
+          tokenURI,
+          eventTitle,
+          role,
+          expiryTime,
+          {
+            gasLimit: gasLimit,
+            from: signerAddress
+          }
+        ).catch(error => {
+          console.error('Transaction error:', error);
+          throw new Error(`Transaction failed: ${error.message}`);
+        });
+        
+        setMintingStatus(prev => ({ ...prev, [studentAddress]: 'confirming' }));
+        console.log('Transaction sent:', tx.hash);
+        
+        console.log('Waiting for confirmation...');
+        const receipt = await tx.wait().catch(error => {
+          console.error('Confirmation error:', error);
+          throw new Error(`Transaction confirmation failed: ${error.message}`);
+        });
+        
+        console.log('Transaction confirmed:', receipt.hash);
+        setMintingStatus(prev => ({ ...prev, [studentAddress]: 'completed' }));
+        toast.success('Attendance validated and NFT minted successfully');
+        toast.info(`Transaction Hash: ${receipt.hash}`);
+      } catch (contractError) {
+        console.error('Contract interaction error:', {
+          error: contractError,
+          message: contractError.message,
+          code: contractError.code,
+          data: contractError.data,
+          transaction: contractError.transaction,
+          reason: contractError.reason
+        });
+        throw new Error(`Contract interaction failed: ${contractError.message}`);
+      }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error validating attendance');
+      console.error('Error validating attendance:', error);
+      setMintingStatus(prev => ({ ...prev, [studentAddress]: 'error' }));
+      toast.error(error.message || 'Failed to validate attendance');
+    }
+  };
+
+  const addLecturer = async (lecturerAddress) => {
+    try {
+      if (!contract) {
+        toast.error('Smart contract not initialized');
+        return;
+      }
+
+      setIsAddingLecturer(true);
+
+      // Get the current signer
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const signerAddress = await signer.getAddress();
+      console.log('Signer address:', signerAddress);
+
+      // Create a new contract instance with the current signer
+      const contractWithSigner = new ethers.Contract(
+        import.meta.env.VITE_CONTRACT_ADDRESS,
+        POAPAttendanceABI,
+        signer
+      );
+
+      // Verify contract owner
+      const owner = await contractWithSigner.owner();
+      console.log('Contract owner:', owner);
+      
+      if (owner.toLowerCase() !== signerAddress.toLowerCase()) {
+        throw new Error('Only the contract owner can add lecturers');
+      }
+
+      // Add lecturer
+      console.log('Adding lecturer:', lecturerAddress);
+      const tx = await contractWithSigner.addLecturer(lecturerAddress);
+      console.log('Transaction sent:', tx.hash);
+      
+      const receipt = await tx.wait();
+      console.log('Transaction confirmed:', receipt.hash);
+      
+      toast.success('Lecturer added successfully');
+      toast.info(`Transaction Hash: ${receipt.hash}`);
+    } catch (error) {
+      console.error('Error adding lecturer:', error);
+      toast.error(error.message || 'Failed to add lecturer');
+    } finally {
+      setIsAddingLecturer(false);
     }
   };
 
@@ -230,10 +508,18 @@ const LecturerDashboard = () => {
                               Remove
                             </button>
                             <button
-                              onClick={() => handleValidateAttendance(classItem._id, studentAddress, new Date().toISOString())}
-                              className="text-green-600 hover:text-green-900"
+                              onClick={() => handleValidateAttendance(classItem._id, studentAddress)}
+                              disabled={mintingStatus[studentAddress] === 'minting' || mintingStatus[studentAddress] === 'confirming'}
+                              className={`text-green-600 hover:text-green-900 ${
+                                (mintingStatus[studentAddress] === 'minting' || mintingStatus[studentAddress] === 'confirming') 
+                                ? 'opacity-50 cursor-not-allowed' 
+                                : ''
+                              }`}
                             >
-                              Validate Attendance
+                              {mintingStatus[studentAddress] === 'minting' ? 'Minting...' :
+                               mintingStatus[studentAddress] === 'confirming' ? 'Confirming...' :
+                               mintingStatus[studentAddress] === 'completed' ? '✓ Validated' :
+                               'Validate & Mint NFT'}
                             </button>
                           </td>
                         </tr>
