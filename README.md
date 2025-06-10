@@ -15,23 +15,36 @@ A decentralized attendance tracking system using POAP NFTs for educational insti
   - `POST /logout` - Clear authentication
   - `GET /me` - Get current user info
   - `GET /check-registration/:address` - Check if wallet is registered
+
+- `/api/admin`
+  - `POST /accounts` - Create new account (Admin only)
+  - `PUT /accounts/:address/role` - Assign role to account (Admin only)
+  - `GET /accounts` - List all accounts (Admin only)
+  - `DELETE /accounts/:address` - Delete account (Admin only)
+
+- `/api/lecturer`
+  - `POST /classes` - Create new class (Lecturer only)
+  - `PUT /classes/:classId` - Update class details (Lecturer only)
+  - `DELETE /classes/:classId` - Delete class (Lecturer only)
+  - `POST /classes/:classId/enroll` - Enroll student in class (Lecturer only)
+  - `DELETE /classes/:classId/students/:address` - Remove student from class (Lecturer only)
+  - `PUT /classes/:classId/students/:address` - Update student details (Lecturer only)
+  - `POST /classes/:classId/attendance/validate` - Validate attendance and mint NFT (Lecturer only)
+
 - `/api/student`
   - `GET /profile` - Get student profile
   - `PUT /profile` - Update student profile
   - `GET /attendance` - Get attendance history
   - `GET /badges` - Get earned badges
+
 - `/api/classes`
   - `GET /` - List all classes
-  - `POST /` - Create new class
   - `GET /:classId` - Get class details
   - `POST /:classId/attend` - Mark attendance
-- `/api/attendance`
-  - `POST /validate` - Validate attendance and mint NFT
-  - `GET /:classId` - Get attendance records
 
 ### Database
 - MongoDB for storing:
-  - User profiles
+  - User profiles (with roles: Admin, Lecturer, Student)
   - Class information
   - Attendance records
   - NFT metadata
@@ -49,11 +62,27 @@ A decentralized attendance tracking system using POAP NFTs for educational insti
   - Wallet connection
   - Message signing for authentication
   - Registration and login flow
+- Role-based Access Control
+  - Admin Dashboard
+    - Account management
+    - Role assignment
+    - System overview
+  - Lecturer Dashboard
+    - Class management
+    - Student enrollment
+    - Attendance validation
+    - NFT minting
+  - Student Dashboard
+    - Class attendance
+    - Badge collection
+    - Profile management
 - Pages
   - Home - Landing page
   - Register - New student registration
   - Login - Wallet authentication
-  - Dashboard - Overview of classes and attendance
+  - Admin Dashboard - Account and role management
+  - Lecturer Dashboard - Class and student management
+  - Student Dashboard - Overview of classes and attendance
   - Classes - Manage and view classes
   - Attendance - Mark and validate attendance
   - Profile - View attendance badges and profile
@@ -64,6 +93,7 @@ A decentralized attendance tracking system using POAP NFTs for educational insti
 - ERC-721 compliant NFT contract
 - Minting functionality for attendance badges
 - Metadata storage for class information
+- Role-based access control for minting
 
 ## Environment Variables
 
@@ -76,6 +106,7 @@ FRONTEND_URL=http://localhost:5173
 CONTRACT_ADDRESS=your-contract-address
 PRIVATE_KEY=your-private-key
 RPC_URL=your-rpc-url
+ADMIN_ADDRESS=your-admin-wallet-address
 ```
 
 ### Frontend (.env)
@@ -167,23 +198,36 @@ npx hardhat run scripts/deploy.js --network <network-name>
 
 ## User Flow
 
-1. **Registration**
+1. **Admin Setup**
+   - Initial admin account creation
+   - Create lecturer accounts
+   - Assign roles to accounts
+   - Monitor system activity
+
+2. **Lecturer Management**
+   - Create and manage classes
+   - Enroll students in classes
+   - Update student information
+   - Validate attendance and mint NFTs
+   - Remove students from classes
+
+3. **Student Registration**
    - Connect MetaMask wallet
    - Fill in student details (name, ID)
    - Sign message to verify wallet ownership
    - Complete registration
 
-2. **Login**
+4. **Login**
    - Connect MetaMask wallet
    - Sign message to authenticate
-   - Access dashboard
+   - Access role-specific dashboard
 
-3. **Attendance**
+5. **Attendance**
    - View available classes
    - Mark attendance for class
    - Receive NFT badge upon validation
 
-4. **Profile**
+6. **Profile**
    - View attendance history
    - Manage earned badges
    - Update profile information

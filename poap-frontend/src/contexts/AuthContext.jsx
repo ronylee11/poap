@@ -36,8 +36,14 @@ export const AuthProvider = ({ children }) => {
 
   const checkRegistration = async (address) => {
     try {
-      const response = await axios.get(`/api/auth/check-registration/${address}`);
-      return response.data.isRegistered;
+      // Check if user exists in any role
+      const [student, lecturer, admin] = await Promise.all([
+        axios.get(`/api/auth/check-registration/${address}?role=student`),
+        axios.get(`/api/auth/check-registration/${address}?role=lecturer`),
+        axios.get(`/api/auth/check-registration/${address}?role=admin`)
+      ]);
+
+      return student.data.isRegistered || lecturer.data.isRegistered || admin.data.isRegistered;
     } catch (error) {
       console.error('Check registration failed:', error);
       return false;

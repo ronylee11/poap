@@ -4,6 +4,8 @@ const { ethers } = require('ethers');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const Student = require('../models/Student');
+const Admin = require('../models/Admin');
+const Lecturer = require('../models/Lecturer');
 
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
@@ -85,8 +87,30 @@ router.post('/register', [
 router.get('/check-registration/:address', async (req, res) => {
     try {
         const { address } = req.params;
-        const student = await Student.findOne({ address });
-        res.json({ isRegistered: !!student });
+        const { role } = req.query;
+
+        let isRegistered = false;
+        switch (role) {
+            case 'student':
+                isRegistered = !!(await Student.findOne({ address }));
+                break;
+            case 'lecturer':
+                isRegistered = !!(await Lecturer.findOne({ address }));
+                break;
+            case 'admin':
+                isRegistered = !!(await Admin.findOne({ address }));
+                break;
+            default:
+                // Check all roles if no specific role is provided
+                const [student, lecturer, admin] = await Promise.all([
+                    Student.findOne({ address }),
+                    Lecturer.findOne({ address }),
+                    Admin.findOne({ address })
+                ]);
+                isRegistered = !!(student || lecturer || admin);
+        }
+
+        res.json({ isRegistered });
     } catch (error) {
         console.error('Check registration error:', error);
         res.status(500).json({ message: 'Failed to check registration' });
@@ -113,15 +137,22 @@ router.post('/login', [
             return res.status(401).json({ message: 'Invalid signature' });
         }
 
-        // Check if student exists
-        const student = await Student.findOne({ address });
-        if (!student) {
-            return res.status(401).json({ message: 'Student not registered' });
+        // Check if user exists in any role
+        let user = await Student.findOne({ address });
+        if (!user) {
+            user = await Lecturer.findOne({ address });
+        }
+        if (!user) {
+            user = await Admin.findOne({ address });
+        }
+
+        if (!user) {
+            return res.status(401).json({ message: 'User not registered' });
         }
 
         // Generate JWT token
         const token = jwt.sign(
-            { address, role: student.role },
+            { address, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
@@ -150,11 +181,26 @@ router.post('/logout', (req, res) => {
 // Get current user
 router.get('/me', verifyToken, async (req, res) => {
     try {
-        const student = await Student.findOne({ address: req.user.address });
-        if (!student) {
-            return res.status(404).json({ message: 'Student not found' });
+        let user;
+        switch (req.user.role) {
+            case 'admin':
+                user = await Admin.findOne({ address: req.user.address });
+                break;
+            case 'lecturer':
+                user = await Lecturer.findOne({ address: req.user.address });
+                break;
+            case 'student':
+                user = await Student.findOne({ address: req.user.address });
+                break;
+            default:
+                return res.status(404).json({ message: 'User not found' });
         }
-        res.json({ user: { ...req.user, name: student.name, studentId: student.studentId } });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({ user });
     } catch (error) {
         console.error('Get user error:', error);
         res.status(500).json({ message: 'Failed to get user' });

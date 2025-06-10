@@ -1,42 +1,30 @@
 const mongoose = require('mongoose');
+const User = require('./User');
 
 const studentSchema = new mongoose.Schema({
-    address: {
-        type: String,
-        required: true,
-        unique: true,
-        lowercase: true
-    },
-    name: {
-        type: String,
-        required: true
-    },
     studentId: {
         type: String,
         required: true,
         unique: true
     },
-    graduationDate: {
-        type: Date
-    },
     enrolledClasses: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Class'
     }],
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
-    }
+    attendance: [{
+        class: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Class'
+        },
+        date: Date,
+        status: {
+            type: String,
+            enum: ['present', 'absent', 'late'],
+            default: 'absent'
+        }
+    }]
 });
 
-// Update the updatedAt timestamp before saving
-studentSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
-    next();
-});
+const Student = User.discriminator('student', studentSchema);
 
-module.exports = mongoose.model('Student', studentSchema); 
+module.exports = Student; 
