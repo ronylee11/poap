@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext(null);
 
@@ -16,6 +17,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     checkAuth();
@@ -48,7 +50,8 @@ export const AuthProvider = ({ children }) => {
       const isRegistered = await checkRegistration(address);
       if (!isRegistered) {
         toast.error('Please register first');
-        return { success: false, redirect: '/register' };
+        navigate('/register');
+        return false;
       }
 
       const message = 'Sign this message to authenticate with POAP Attendance System';
@@ -60,11 +63,12 @@ export const AuthProvider = ({ children }) => {
       
       await checkAuth(); // Fetch user data after successful login
       toast.success('Login successful!');
-      return { success: true, redirect: '/dashboard' };
+      navigate('/dashboard');
+      return true;
     } catch (error) {
       console.error('Login failed:', error);
       toast.error(error.response?.data?.message || `Login failed: ${error}`);
-      return { success: false, redirect: '/login' };
+      return false;
     }
   };
 
@@ -73,11 +77,10 @@ export const AuthProvider = ({ children }) => {
       await axios.post('/api/auth/logout', {}, { withCredentials: true });
       setUser(null);
       toast.success('Logged out successfully');
-      return '/';
+      navigate('/');
     } catch (error) {
       console.error('Logout failed:', error);
       toast.error('Logout failed');
-      return null;
     }
   };
 

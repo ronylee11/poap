@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'react-hot-toast';
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
@@ -12,15 +13,14 @@ export default function Login() {
       setLoading(true);
       const { address, signature } = await signMessage();
       if (address && signature) {
-        const result = await login(address, signature);
-        if (result.success) {
-          navigate(result.redirect);
-        } else {
-          navigate(result.redirect);
+        const success = await login(address, signature);
+        if (success) {
+          navigate('/dashboard');
         }
       }
     } catch (error) {
       console.error('Login error:', error);
+      toast.error('Failed to connect wallet. Please try again.');
     } finally {
       setLoading(false);
     }
