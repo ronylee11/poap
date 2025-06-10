@@ -9,7 +9,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import LecturerDashboard from './pages/LecturerDashboard';
 import Home from './pages/Home';
 import Classes from './pages/Classes';
-import Me from './pages/Profile';
+import Me from './pages/StudentProfile';
 
 // Protected Route component
 const ProtectedRoute = ({ children, allowedRoles }) => {

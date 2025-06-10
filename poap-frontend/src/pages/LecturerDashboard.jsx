@@ -196,145 +196,41 @@ const LecturerDashboard = () => {
       const role = "Student";
       const expiryTime = 0; // No expiry
 
-      // Log all parameters for debugging
-      console.log('Contract address:', import.meta.env.VITE_CONTRACT_ADDRESS);
-      console.log('Minting parameters:', {
+      // Get the current signer
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const signerAddress = await signer.getAddress();
+      console.log('Signer address:', signerAddress);
+
+      // Create a new contract instance with the current signer
+      const contractWithSigner = new ethers.Contract(
+        import.meta.env.VITE_CONTRACT_ADDRESS,
+        POAPAttendanceABI,
+        signer
+      );
+
+      // Mint the badge
+      console.log('Minting badge...');
+      const tx = await contractWithSigner.mintBadge(
         studentAddress,
         tokenURI,
         eventTitle,
         role,
         expiryTime
-      });
-
-      try {
-        // Get the current signer
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const signerAddress = await signer.getAddress();
-        console.log('Signer address:', signerAddress);
-
-        // Create a new contract instance with the current signer
-        const contractWithSigner = new ethers.Contract(
-          import.meta.env.VITE_CONTRACT_ADDRESS,
-          POAPAttendanceABI,
-          signer
-        );
-
-        // Verify contract methods and parameters
-        if (!contractWithSigner.mintBadge) {
-          throw new Error('mintBadge method not found in contract');
-        }
-
-        // Verify contract code exists
-        const code = await provider.getCode(import.meta.env.VITE_CONTRACT_ADDRESS);
-        if (code === '0x') {
-          throw new Error('No contract found at the specified address');
-        }
-
-        // Verify contract owner
-        try {
-          const owner = await contractWithSigner.owner();
-          console.log('Contract owner:', owner);
-          if (owner.toLowerCase() !== signerAddress.toLowerCase()) {
-            console.warn('Warning: Signer is not the contract owner');
-          }
-        } catch (error) {
-          console.warn('Could not verify contract owner:', error);
-        }
-
-        // First try to estimate gas with detailed error handling
-        console.log('Estimating gas...');
-        let gasEstimate;
-        try {
-          // Log the exact function call parameters
-          console.log('Function call parameters:', {
-            to: import.meta.env.VITE_CONTRACT_ADDRESS,
-            from: signerAddress,
-            studentAddress,
-            tokenURI,
-            eventTitle,
-            role,
-            expiryTime
-          });
-
-          gasEstimate = await contractWithSigner.mintBadge.estimateGas(
-            studentAddress,
-            tokenURI,
-            eventTitle,
-            role,
-            expiryTime,
-            {
-              from: signerAddress
-            }
-          );
-          console.log('Gas estimate:', gasEstimate.toString());
-        } catch (estimateError) {
-          console.error('Gas estimation error details:', {
-            error: estimateError,
-            message: estimateError.message,
-            code: estimateError.code,
-            data: estimateError.data,
-            transaction: estimateError.transaction,
-            reason: estimateError.reason
-          });
-
-          // Try to decode the error if possible
-          if (estimateError.data) {
-            try {
-              const decodedError = contractWithSigner.interface.parseError(estimateError.data);
-              console.error('Decoded error:', decodedError);
-            } catch (decodeError) {
-              console.error('Could not decode error:', decodeError);
-            }
-          }
-
-          throw new Error(`Gas estimation failed: ${estimateError.message}`);
-        }
-
-        // Add 20% buffer to gas estimate
-        const gasLimit = Math.floor(gasEstimate * 1.2);
-        console.log('Gas limit with buffer:', gasLimit);
-
-        // Now execute the transaction with the gas limit
-        console.log('Sending transaction...');
-        const tx = await contractWithSigner.mintBadge(
-          studentAddress,
-          tokenURI,
-          eventTitle,
-          role,
-          expiryTime,
-          {
-            gasLimit: gasLimit,
-            from: signerAddress
-          }
-        ).catch(error => {
-          console.error('Transaction error:', error);
-          throw new Error(`Transaction failed: ${error.message}`);
-        });
-        
-        setMintingStatus(prev => ({ ...prev, [studentAddress]: 'confirming' }));
-        console.log('Transaction sent:', tx.hash);
-        
-        console.log('Waiting for confirmation...');
-        const receipt = await tx.wait().catch(error => {
-          console.error('Confirmation error:', error);
-          throw new Error(`Transaction confirmation failed: ${error.message}`);
-        });
-        
-        console.log('Transaction confirmed:', receipt.hash);
-        setMintingStatus(prev => ({ ...prev, [studentAddress]: 'completed' }));
-        toast.success('Attendance validated and NFT minted successfully');
-        toast.info(`Transaction Hash: ${receipt.hash}`);
-      } catch (contractError) {
-        console.error('Contract interaction error:', {
-          error: contractError,
-          message: contractError.message,
-          code: contractError.code,
-          data: contractError.data,
-          transaction: contractError.transaction,
-          reason: contractError.reason
-        });
-        throw new Error(`Contract interaction failed: ${contractError.message}`);
+      );
+      
+      setMintingStatus(prev => ({ ...prev, [studentAddress]: 'confirming' }));
+      console.log('Transaction sent:', tx.hash);
+      
+      const receipt = await tx.wait();
+      console.log('Transaction confirmed:', receipt.hash);
+      
+      setMintingStatus(prev => ({ ...prev, [studentAddress]: 'completed' }));
+      
+      // Show success messages
+      toast.success('Attendance validated and NFT minted successfully');
+      if (receipt && receipt.hash) {
+        toast('Transaction Hash: ' + receipt.hash);
       }
     } catch (error) {
       console.error('Error validating attendance:', error);

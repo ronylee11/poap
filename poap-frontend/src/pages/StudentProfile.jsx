@@ -84,7 +84,7 @@ export default function StudentProfile() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-8">
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
           <h1 className="text-2xl font-semibold text-gray-900">My Attendance NFTs</h1>
