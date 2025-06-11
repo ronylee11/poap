@@ -6,18 +6,25 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [recentAttendance, setRecentAttendance] = useState([]);
+  const [recentBadges, setRecentBadges] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [statsResponse, attendanceResponse] = await Promise.all([
+        const [statsResponse, profileResponse] = await Promise.all([
           axios.get('/api/student/attendance/stats', { withCredentials: true }),
           axios.get('/api/student/profile', { withCredentials: true })
         ]);
 
         setStats(statsResponse.data);
-        setRecentAttendance(attendanceResponse.data.attendance.slice(0, 5));
+        setRecentAttendance(profileResponse.data.attendance.slice(0, 5));
+        
+        // Sort badges by mintedAt timestamp (newest first) and take the 5 most recent
+        const sortedBadges = [...profileResponse.data.badges].sort((a, b) => 
+          Number(b.mintedAt) - Number(a.mintedAt)
+        );
+        setRecentBadges(sortedBadges.slice(0, 5));
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -73,37 +80,38 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Recent Attendance */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Attendance</h3>
-        <div className="flow-root">
-          <ul role="list" className="-my-5 divide-y divide-gray-200">
-            {recentAttendance.map((record) => (
-              <li key={record._id} className="py-4">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {record.classId.title}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(record.markedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        record.validated
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}
-                    >
-                      {record.validated ? 'Validated' : 'Pending'}
-                    </span>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+      {/* Recent Badges */}
+      <div className="card mt-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Attendance Badges</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {recentBadges.map((badge) => (
+            <div key={badge.tokenId} className="bg-white rounded-lg shadow p-4 border border-gray-200">
+              <div className="flex items-center justify-between">
+                <h4 className="text-lg font-medium text-gray-900">{badge.title}</h4>
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    badge.isValid
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  {badge.isValid ? 'Valid' : 'Expired'}
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-gray-500">Role: {badge.role}</p>
+              <p className="text-sm text-gray-500">
+                Expires: {new Date(Number(badge.expiry) * 1000).toLocaleDateString()}
+              </p>
+              <p className="text-sm text-gray-500">
+                Minted: {new Date(Number(badge.mintedAt) * 1000).toLocaleDateString()}
+              </p>
+            </div>
+          ))}
+          {recentBadges.length === 0 && (
+            <p className="text-gray-500 col-span-full text-center py-4">
+              No badges earned yet. Attend classes to earn badges!
+            </p>
+          )}
         </div>
       </div>
     </div>

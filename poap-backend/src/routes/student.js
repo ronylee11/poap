@@ -39,23 +39,80 @@ const verifyToken = (req, res, next) => {
 router.get('/profile', verifyToken, async (req, res) => {
     try {
         const { address } = req.user;
+        console.log('Fetching profile for address:', address);
 
         // Get student details
-        const student = await Student.findOne({ address });
-        if (!student) {
-            return res.status(404).json({ message: 'Student not found' });
+        let student;
+        try {
+            student = await Student.findOne({ address });
+            if (!student) {
+                return res.status(404).json({ message: 'Student not found' });
+            }
+            console.log('Found student:', student.name);
+        } catch (error) {
+            console.error('Error finding student:', error);
+            return res.status(500).json({ message: 'Database error while finding student' });
         }
 
         // Get enrolled classes
-        const enrolledClasses = await Class.find({ students: address });
+        let enrolledClasses;
+        try {
+            enrolledClasses = await Class.find({ students: address });
+            console.log('Found enrolled classes:', enrolledClasses.length);
+        } catch (error) {
+            console.error('Error finding enrolled classes:', error);
+            return res.status(500).json({ message: 'Database error while finding enrolled classes' });
+        }
 
         // Get attendance records
-        const attendance = await Attendance.find({ student: address })
-            .populate('classId', 'title')
-            .sort({ markedAt: -1 });
+        let attendance;
+        try {
+            attendance = await Attendance.find({ student: address })
+                .populate('classId', 'title')
+                .sort({ markedAt: -1 });
+            console.log('Found attendance records:', attendance.length);
+        } catch (error) {
+            console.error('Error finding attendance records:', error);
+            return res.status(500).json({ message: 'Database error while finding attendance records' });
+        }
 
         // Get NFT badges
-        const badges = await contract.checkNFT(address);
+        let badgeIds;
+        try {
+            console.log('Fetching badges for address:', address);
+            badgeIds = await contract.getStudentBadges(address);
+            console.log('Found badge IDs:', badgeIds);
+        } catch (error) {
+            console.error('Error fetching badge IDs:', error);
+            return res.status(500).json({ 
+                message: 'Failed to fetch badges',
+                error: error.message,
+                contractAddress: contractAddress,
+                rpcUrl: process.env.RPC_URL
+            });
+        }
+
+        const badges = [];
+        for (const tokenId of badgeIds) {
+            try {
+                console.log('Fetching metadata for token:', tokenId);
+                const [title, role, expiry, mintedAt, uri] = await contract.getBadgeMetadata(tokenId);
+                const isValid = await contract.isBadgeValid(tokenId);
+                badges.push({
+                    tokenId: tokenId.toString(),
+                    title,
+                    role,
+                    expiry: expiry.toString(),
+                    mintedAt: mintedAt.toString(),
+                    uri,
+                    isValid
+                });
+                console.log('Successfully fetched metadata for token:', tokenId);
+            } catch (error) {
+                console.error(`Error fetching metadata for token ${tokenId}:`, error);
+                // Continue with other badges even if one fails
+            }
+        }
 
         res.json({
             student,
@@ -64,8 +121,11 @@ router.get('/profile', verifyToken, async (req, res) => {
             badges
         });
     } catch (error) {
-        console.error('Error fetching student profile:', error);
-        res.status(500).json({ message: 'Failed to fetch student profile' });
+        console.error('Unexpected error in profile route:', error);
+        res.status(500).json({ 
+            message: 'Failed to fetch student profile',
+            error: error.message
+        });
     }
 });
 
