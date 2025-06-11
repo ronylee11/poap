@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { ethers } from 'ethers';
 import { toast } from 'react-toastify';
-import POAPAttendanceABI from '../contracts/POAPAttendance.json';
+import POAPAttendanceArtifact from '../contracts/POAPAttendance.json';
+
+const POAPAttendanceABI = POAPAttendanceArtifact.abi;
 
 export default function StudentProfile() {
   const { user } = useAuth();
@@ -42,28 +44,20 @@ export default function StudentProfile() {
     try {
       if (!contractInstance) return;
 
-      // Get the total number of tokens owned by the user
-      const balance = await contractInstance.balanceOf(user.address);
-      const totalTokens = balance.toString();
+      // Get all token IDs owned by the user
+      const tokenIds = await contractInstance.getStudentBadges(user.address);
 
       // Fetch details for each token
-      const nftPromises = [];
-      for (let i = 0; i < totalTokens; i++) {
-        nftPromises.push(
-          contractInstance.tokenOfOwnerByIndex(user.address, i)
-            .then(async (tokenId) => {
-              const tokenURI = await contractInstance.tokenURI(tokenId);
-              const badge = await contractInstance.badges(tokenId);
-              return {
-                tokenId: tokenId.toString(),
-                tokenURI,
-                eventTitle: badge.eventTitle,
-                role: badge.role,
-                expiryTime: badge.expiryTime.toString()
-              };
-            })
-        );
-      }
+      const nftPromises = tokenIds.map(async (tokenId) => {
+        const badge = await contractInstance.getBadgeMetadata(tokenId);
+        return {
+          tokenId: tokenId.toString(),
+          tokenURI: badge.uri,
+          eventTitle: badge.eventTitle,
+          role: badge.role,
+          expiryTime: badge.expiryTime.toString()
+        };
+      });
 
       const nftData = await Promise.all(nftPromises);
       setNfts(nftData);

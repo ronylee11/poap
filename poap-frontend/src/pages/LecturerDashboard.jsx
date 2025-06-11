@@ -189,9 +189,30 @@ const LecturerDashboard = () => {
         throw new Error('Class not found');
       }
 
-      // Generate unique tokenURI
+      // Generate metadata for the NFT
       const timestamp = new Date().toISOString();
-      const tokenURI = `ipfs://${classDetails.name}-${timestamp}`;
+      const metadata = {
+        name: `${classDetails.name} Attendance Badge`,
+        description: `Attendance badge for ${classDetails.name}`,
+        image: "ipfs://QmYourDefaultImageHash", // Replace with your default image
+        attributes: [
+          {
+            trait_type: "Event",
+            value: classDetails.name
+          },
+          {
+            trait_type: "Role",
+            value: "Student"
+          },
+          {
+            trait_type: "Date",
+            value: timestamp
+          }
+        ]
+      };
+
+      // Convert metadata to IPFS URI
+      const tokenURI = `ipfs://${btoa(JSON.stringify(metadata))}`;
       const eventTitle = classDetails.name;
       const role = "Student";
       const expiryTime = 0; // No expiry
@@ -224,6 +245,21 @@ const LecturerDashboard = () => {
       
       const receipt = await tx.wait();
       console.log('Transaction confirmed:', receipt.hash);
+      
+      // Get the token ID from the event
+      const event = receipt.logs.find(log => {
+        try {
+          return contractWithSigner.interface.parseLog(log).name === 'BadgeMinted';
+        } catch {
+          return false;
+        }
+      });
+
+      if (event) {
+        const parsedLog = contractWithSigner.interface.parseLog(event);
+        const tokenId = parsedLog.args.tokenId;
+        console.log('Minted token ID:', tokenId.toString());
+      }
       
       setMintingStatus(prev => ({ ...prev, [studentAddress]: 'completed' }));
       

@@ -23,7 +23,6 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchAccounts();
     initializeContract();
-    fetchLecturers();
   }, []);
 
   const fetchAccounts = async () => {
@@ -91,6 +90,7 @@ const AdminDashboard = () => {
 
       setContract(contractInstance);
       console.log('Contract initialized successfully');
+      await fetchLecturers();
     } catch (error) {
       console.error('Error initializing contract:', error);
       toast.error('Failed to initialize smart contract: ' + error.message);
@@ -101,8 +101,12 @@ const AdminDashboard = () => {
 
   const fetchLecturers = async () => {
     try {
-      if (!contract) return;
+      if (!contract) {
+        console.log('Contract not initialized yet, skipping fetchLecturers');
+        return;
+      }
 
+      console.log('Starting to fetch lecturers...');
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const contractWithSigner = new ethers.Contract(
@@ -117,21 +121,26 @@ const AdminDashboard = () => {
       );
 
       // Get all accounts from your backend
+      console.log('Fetching accounts from backend...');
       const response = await axios.get('/api/admin/accounts', { withCredentials: true });
       const accounts = response.data;
+      console.log('Fetched accounts:', accounts);
 
       // Filter accounts that are lecturers in the smart contract
-      const lecturerAddresses = [];
+      const lecturerAccounts = [];
       for (const account of accounts) {
         if (account.role === 'lecturer') {
+          console.log('Checking lecturer status for:', account.address);
           const isLecturer = await contractWithSigner.lecturers(account.address);
+          console.log('Is lecturer:', isLecturer);
           if (isLecturer) {
-            lecturerAddresses.push(account.address);
+            lecturerAccounts.push(account);
           }
         }
       }
 
-      setLecturers(lecturerAddresses);
+      console.log('Final lecturer accounts:', lecturerAccounts);
+      setLecturers(lecturerAccounts);
     } catch (error) {
       console.error('Error fetching lecturers:', error);
       toast.error('Failed to fetch lecturers');
@@ -440,17 +449,19 @@ const AdminDashboard = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {lecturers.map((lecturer) => (
-                <tr key={lecturer}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lecturer}</td>
+                <tr key={lecturer.address}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lecturer.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lecturer.address}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <button
-                      onClick={() => removeLecturer(lecturer)}
+                      onClick={() => removeLecturer(lecturer.address)}
                       className="text-red-600 hover:text-red-900"
                     >
                       Remove
