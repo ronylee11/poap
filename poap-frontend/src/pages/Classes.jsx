@@ -16,12 +16,17 @@ export default function Classes() {
 
   const fetchClasses = async () => {
     try {
-      const API_URL = 'http://localhost:3001';
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       const endpoint = user.role === 'lecturer' 
         ? `${API_URL}/api/lecturer/classes`
         : `${API_URL}/api/classes`;
       
-      const response = await axios.get(endpoint, { withCredentials: true });
+      const response = await axios.get(endpoint, { 
+        withCredentials: true,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       setClasses(response.data);
     } catch (error) {
       console.error('Error fetching classes:', error);
@@ -33,9 +38,15 @@ export default function Classes() {
 
   const handleEnroll = async (classId) => {
     try {
-      await axios.post(`/api/classes/${classId}/enroll`, {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      await axios.post(`${API_URL}/api/classes/${classId}/enroll`, {
         studentAddress: user.address
-      }, { withCredentials: true });
+      }, { 
+        withCredentials: true,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       
       toast.success('Successfully enrolled in class');
       fetchClasses();
@@ -47,9 +58,15 @@ export default function Classes() {
 
   const handleMarkAttendance = async (classId) => {
     try {
-      await axios.post('/api/attendance/mark', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      await axios.post(`${API_URL}/api/attendance/mark`, {
         classId
-      }, { withCredentials: true });
+      }, { 
+        withCredentials: true,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       
       toast.success('Attendance marked successfully');
       fetchClasses();
@@ -81,7 +98,7 @@ export default function Classes() {
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {classes.map((classItem) => (
           <div key={classItem._id} className="card">
-            <h3 className="text-lg font-semibold text-gray-900">{classItem.title}</h3>
+            <h3 className="text-lg font-semibold text-gray-900">{classItem.name}</h3>
             <p className="mt-1 text-sm text-gray-500">{classItem.description}</p>
             
             <div className="mt-4 flex items-center justify-between">

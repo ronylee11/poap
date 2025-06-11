@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { ethers } = require('ethers');
+const { verifyToken } = require('../middleware/authMiddleware');
 
 // Import models
 const Class = require('../models/Class');
@@ -15,6 +16,9 @@ const contractAddress = process.env.CONTRACT_ADDRESS;
 // Initialize contract
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 const contract = new ethers.Contract(contractAddress, contractABI, provider);
+
+// Apply verifyToken middleware to all routes
+router.use(verifyToken);
 
 // Get all classes for a user
 router.get('/', async (req, res) => {
