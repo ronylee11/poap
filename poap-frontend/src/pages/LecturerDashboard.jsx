@@ -42,7 +42,6 @@ const LecturerDashboard = () => {
       const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
       
       console.log('Initializing contract with address:', contractAddress);
-      console.log('Contract ABI:', POAPAttendanceABI);
       
       if (!contractAddress) {
         throw new Error('Contract address not found in environment variables');
@@ -53,8 +52,12 @@ const LecturerDashboard = () => {
         throw new Error('Invalid contract address format');
       }
 
-      // Create contract instance
-      const contractInstance = new ethers.Contract(contractAddress, POAPAttendanceABI, signer);
+      // Create contract instance with the ABI from the JSON file
+      const contractInstance = new ethers.Contract(
+        contractAddress,
+        POAPAttendanceABI.abi, // Access the abi property from the imported JSON
+        signer
+      );
       
       // Verify contract connection
       try {
@@ -226,7 +229,7 @@ const LecturerDashboard = () => {
       // Create a new contract instance with the current signer
       const contractWithSigner = new ethers.Contract(
         import.meta.env.VITE_CONTRACT_ADDRESS,
-        POAPAttendanceABI,
+        POAPAttendanceABI.abi,
         signer
       );
 
@@ -293,7 +296,7 @@ const LecturerDashboard = () => {
       // Create a new contract instance with the current signer
       const contractWithSigner = new ethers.Contract(
         import.meta.env.VITE_CONTRACT_ADDRESS,
-        POAPAttendanceABI,
+        POAPAttendanceABI.abi,
         signer
       );
 
