@@ -1,7 +1,7 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const connectDB = require('./config/database');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -12,6 +12,9 @@ const classRoutes = require('./routes/class');
 const attendanceRoutes = require('./routes/attendance');
 
 const app = express();
+
+// Connect to MongoDB
+connectDB();
 
 // Middleware
 app.use(cors({
@@ -39,11 +42,6 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!' });
 });
-
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/poap-attendance')
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

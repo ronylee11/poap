@@ -2,7 +2,7 @@
 db = db.getSiblingDB('admin');
 
 // Create a new database
-db = db.getSiblingDB('myapp');
+db = db.getSiblingDB('poap-attendance');
 
 // Create a user for the application
 db.createUser({
@@ -11,11 +11,13 @@ db.createUser({
   roles: [
     {
       role: 'readWrite',
-      db: 'myapp'
+      db: 'poap-attendance'
     }
   ]
 });
 
-// Create some initial collections
+// Create initial collections
 db.createCollection('users');
-db.createCollection('data'); 
+db.createCollection('classes');
+db.createCollection('attendance');
+db.createCollection('tokens'); 
